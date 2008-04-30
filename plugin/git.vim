@@ -13,6 +13,7 @@ nnoremap <Leader>gl :GitLog<Enter>
 nnoremap <Leader>ga :GitAdd<Enter>
 nnoremap <Leader>gA :GitAdd <cfile><Enter>
 nnoremap <Leader>gc :GitCommit<Enter>
+nnoremap <Leader>gg :GitGrep -e '<C-R>=getreg('/')<Enter>'<Enter>
 
 " Returns current git branch.
 " Call inside 'statusline' or 'titlestring'.
@@ -88,6 +89,20 @@ function! GitLog()
     call <SID>OpenGitBuffer(git_output)
     setlocal filetype=git-log
 endfunction
+
+" Show Grep.
+function! GitGrep(args)
+	echo 'git grep ' . a:args
+    let git_output = system('git grep ' . a:args)
+    if !strlen(git_output)
+	echo "no output from git command"
+	return
+    endif
+
+    call <SID>OpenGitBuffer(git_output)
+    set filetype=git-grep
+endfunction
+
 
 " Add file to index.
 function! GitAdd(expr)
@@ -221,3 +236,4 @@ command! -nargs=1 GitCatFile          call GitCatFile(<q-args>)
 command! -nargs=+ Git                 call GitDoCommand(<q-args>)
 command!          GitVimDiffMerge     call GitVimDiffMerge()
 command!          GitVimDiffMergeDone call GitVimDiffMergeDone()
+command! -nargs=* GitGrep    :call GitGrep(<q-args>)
