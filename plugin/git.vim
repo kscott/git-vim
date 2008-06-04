@@ -93,14 +93,15 @@ endfunction
 " Show Grep.
 function! GitGrep(args)
 	echo 'git grep ' . a:args
-    let git_output = system('git grep ' . a:args)
+    let git_output = system('git grep -n ' . a:args)
     if !strlen(git_output)
 	echo "no output from git command"
 	return
     endif
 
-    call <SID>OpenGitBuffer(git_output)
-    set filetype=git-grep
+    "call <SID>OpenGitBuffer(git_output)
+    "set filetype=git-grep
+    call <SID>OpenGitGrepQickFix(git_output)
 endfunction
 
 
@@ -218,6 +219,17 @@ function! s:OpenGitBuffer(content)
     let b:is_git_msg_buffer = 1
 endfunction
 
+function! s:OpenGitGrepQickFix(content)
+    let list = []
+
+    for l:line in split(a:content, "\n")
+	let l:parts = matchlist(l:line, '\([^:]\+\):\(\d\+\):\(.*\)')
+	call add(list, { 'filename': l:parts[1], 'lnum': l:parts[2], 'text': l:parts[3] })
+    endfor
+
+    call setqflist(list)
+endfunction
+
 function! s:Expand(expr)
     if has('win32')
         return substitute(expand(a:expr), '\', '/', 'g')
@@ -237,3 +249,5 @@ command! -nargs=+ Git                 call GitDoCommand(<q-args>)
 command!          GitVimDiffMerge     call GitVimDiffMerge()
 command!          GitVimDiffMergeDone call GitVimDiffMergeDone()
 command! -nargs=* GitGrep    :call GitGrep(<q-args>)
+
+" vim: set et sw=4 ts=4:
