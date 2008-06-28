@@ -24,8 +24,8 @@ function! GitBranch()
         endif
     endif
 
-    if strlen(b:git_dir) && filereadable(b:git_dir . 'HEAD')
-        let lines = readfile(b:git_dir . 'HEAD')
+    if strlen(b:git_dir) && filereadable(b:git_dir . '/HEAD')
+        let lines = readfile(b:git_dir . '/HEAD')
         return len(lines) ? matchstr(lines[0], '[^/]*$') : ''
     else
         return ''
@@ -104,7 +104,7 @@ function! GitCommit(args)
     call system('git commit ' . a:args)
     let $EDITOR = editor_save
 
-    execute printf('%s %sCOMMIT_EDITMSG', g:git_command_edit, b:git_dir)
+    execute printf('%s %s/COMMIT_EDITMSG', g:git_command_edit, b:git_dir)
     setlocal filetype=git-status bufhidden=wipe
     augroup GitCommit
         autocmd BufWritePre  <buffer> g/^#\|^\s*$/d | setlocal fileencoding=utf-8
