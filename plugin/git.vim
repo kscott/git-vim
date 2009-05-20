@@ -142,7 +142,7 @@ function! GitCommit(args)
     setlocal filetype=gitcommit bufhidden=wipe
     augroup GitCommit
         autocmd BufRead <buffer> setlocal fileencoding=utf-8
-        execute printf("autocmd BufWritePost <buffer> call GitDoCommand('commit %s --cleanup=strip -F ' . expand('%%')) | autocmd! GitCommit * <buffer>", args)
+        execute printf("autocmd BufUnload <buffer> call GitDoCommand('commit %s --cleanup=strip -F ' . expand('<afile>')) | autocmd! GitCommit * <buffer>", args)
     augroup END
 endfunction
 "
