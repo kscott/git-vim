@@ -138,6 +138,9 @@ function! GitCommit(args)
     let git_output = s:SystemGit('commit ' . args)
     let $EDITOR = editor_save
 
+    " signoff already handled, so don't pass through -s/--signoff again
+    let args = substitute(args, '\k\@<!\(-s\|--signoff\)\>', '', 'g')
+
     execute printf('%s %sCOMMIT_EDITMSG', g:git_command_edit, git_dir)
     setlocal filetype=gitcommit bufhidden=wipe
     augroup GitCommit
