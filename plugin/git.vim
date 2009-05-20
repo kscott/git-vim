@@ -141,11 +141,11 @@ function! GitCommit(args)
     execute printf('%s %sCOMMIT_EDITMSG', g:git_command_edit, git_dir)
     setlocal filetype=gitcommit bufhidden=wipe
     augroup GitCommit
-        autocmd BufWritePre  <buffer> g/^#\|^\s*$/d | setlocal fileencoding=utf-8
-        execute printf("autocmd BufWritePost <buffer> call GitDoCommand('commit %s -F ' . expand('%%')) | autocmd! GitCommit * <buffer>", args)
+        autocmd BufWritePre <buffer> setlocal fileencoding=utf-8
+        execute printf("autocmd BufWritePost <buffer> call GitDoCommand('commit %s --cleanup=strip -F ' . expand('%%')) | autocmd! GitCommit * <buffer>", args)
     augroup END
 endfunction
-
+"
 " Checkout.
 function! GitCheckout(args)
     call GitDoCommand('checkout ' . a:args)
