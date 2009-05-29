@@ -44,7 +44,7 @@ If a command has an [args] argument, it is passed to appropriate git command.
 				or local branch.
 
 							*git-pull-rebase*
-:GitPullRebase			Same as |:GitPull| with --rebase argument.
+:GitPullRebase			Same as :GitPull with --rebase argument.
 
 							*git-push*
 :GitPush [args]			Update remote refs along with associated
@@ -68,7 +68,7 @@ If a command has an [args] argument, it is passed to appropriate git command.
 2. Key mappings						*git-keymaps*
 
 All mappings use <Leader> to avoid conflicts with default commands.  See
-*mapleader* for details.
+<mapleader> for details.
 
 <Leader>gd		:GitDiff
 <Leader>gD		:GitDiff --cached
