@@ -141,7 +141,7 @@ function! GitCommit(args)
     execute printf('%s %sCOMMIT_EDITMSG', g:git_command_edit, git_dir)
     setlocal filetype=git-status bufhidden=wipe
     augroup GitCommit
-        autocmd BufWritePre  <buffer> g/^#\|^\s*$/d | setlocal fileencoding=utf-8
+        autocmd BufWritePre  <buffer> g/^#\|^[^%2l]\s*$/d | setlocal fileencoding=utf-8
         execute printf("autocmd BufWritePost <buffer> call GitDoCommand('commit %s -F ' . expand('%%')) | autocmd! GitCommit * <buffer>", args)
     augroup END
 endfunction
