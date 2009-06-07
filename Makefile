@@ -2,9 +2,8 @@
 INSTALL=install
 INSTALL_FILE=${INSTALL} -m 0644 -v -D
 
-FILES_FOR_INSTALL= plugin/git.vim \
-		   syntax/git-log.vim \
-		   syntax/git-status.vim
+FILES_FOR_INSTALL= $(wildcard plugin/git*.vim) \
+		   $(wildcard syntax/git*.vim)
 DEST=${HOME}/.vim
 
 .PHONY: default
