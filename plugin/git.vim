@@ -40,7 +40,6 @@ function! s:GetGitDir()
     if b:git_dir[-1:] != '/'
         let b:git_dir .= '/'
     endif
-echo "git_dir is " . b:git_dir 
     return b:git_dir
 endfunction
 
@@ -130,9 +129,7 @@ function! GitGrep(args)
 	return
     endif
 
-    "call <SID>OpenGitBuffer(git_output)
-    "set filetype=git-grep
-    call <SID>OpenGitGrepQickFix(git_output)
+    call <SID>OpenGitGrepQuickFix(git_output)
 endfunction
 
 
@@ -341,15 +338,17 @@ function! s:OpenGitBuffer(content)
     let b:is_git_msg_buffer = 1
 endfunction
 
-function! s:OpenGitGrepQickFix(content)
+function! s:OpenGitGrepQuickFix(content)
     let list = []
 
     for l:line in split(a:content, "\n")
-	let l:parts = matchlist(l:line, '\([^:]\+\):\(\d\+\):\(.*\)')
-	call add(list, { 'filename': l:parts[1], 'lnum': l:parts[2], 'text': l:parts[3] })
+        let l:parts = matchlist(l:line, '\([^:]\+\):\(\d\+\):\(.*\)')
+        call add(list, { 'filename': l:parts[1], 'lnum': l:parts[2], 'text': l:parts[3] })
     endfor
 
     call setqflist(list)
+    crewind
+    copen
 endfunction
 
 function! s:Expand(expr)
@@ -374,6 +373,6 @@ command!          GitVimDiffMergeDone call GitVimDiffMergeDone()
 command! -nargs=* GitPull             call GitPull(<q-args>)
 command!          GitPullRebase       call GitPull('--rebase')
 command! -nargs=* GitPush             call GitPush(<q-args>)
-command! -nargs=* GitGrep    :call GitGrep(<q-args>)
+command! -nargs=* GitGrep             call GitGrep(<q-args>)
 
 " vim: set et sw=4 ts=4:
