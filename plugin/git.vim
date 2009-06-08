@@ -28,6 +28,8 @@ nnoremap <Leader>gc :GitCommit<Enter>
 nnoremap <Leader>gp :GitPullRebase<Enter>
 nnoremap <Leader>gg :GitGrep -e '<C-R>=getreg('/')<Enter>'<Enter>
 
+
+
 " Ensure b:git_dir exists.
 function! s:GetGitDir()
     if !exists('b:git_dir')
@@ -45,7 +47,7 @@ endfunction
 
 " Returns current git branch.
 " Call inside 'statusline' or 'titlestring'.
-function! GitBranch()
+function! GetGitBranch()
     let git_dir = <SID>GetGitDir()
 
     if strlen(git_dir) && filereadable(git_dir . 'HEAD')
@@ -56,8 +58,20 @@ function! GitBranch()
     endif
 endfunction
 
-" List all git local branches.
-function! ListGitBranches(arg_lead, cmd_line, cursor_pos)
+
+
+" List all branches.
+function! ListGitBranches()
+    let branches = split(s:SystemGit('branch -a'), '\n')
+    if v:shell_error
+        return []
+    endif
+
+    return map(branches, 'matchstr(v:val, ''^[* ] \zs\S\+\ze'')')
+endfunction
+
+" List all local branches.
+function! ListGitLocalBranches()
     let branches = split(s:SystemGit('branch'), '\n')
     if v:shell_error
         return []
@@ -67,24 +81,16 @@ function! ListGitBranches(arg_lead, cmd_line, cursor_pos)
 endfunction
 
 " List all git commits.
-function! ListGitCommits(arg_lead, cmd_line, cursor_pos)
+function! ListGitCommits()
     let commits = split(s:SystemGit('log --pretty=format:%h'))
     if v:shell_error
         return []
     endif
 
-    let commits = ['HEAD'] + ListGitBranches(a:arg_lead, a:cmd_line, a:cursor_pos) + commits
-
-    if a:cmd_line =~ '^GitDiff'
-        " GitDiff accepts <commit>..<commit>
-        if a:arg_lead =~ '\.\.'
-            let pre = matchstr(a:arg_lead, '.*\.\.\ze')
-            let commits = map(commits, 'pre . v:val')
-        endif
-    endif
-
-    return filter(commits, 'match(v:val, ''\v'' . a:arg_lead) == 0')
+    return commits
 endfunction
+
+
 
 " Show diff.
 function! GitDiff(args)
@@ -96,6 +102,32 @@ function! GitDiff(args)
 
     call <SID>OpenGitBuffer(git_output)
     setlocal filetype=git-diff
+endfunction
+
+function! CompleteGitDiffCmd(arg_lead, cmd_line, cursor_pos)
+    let opts = [ ]
+    if !strlen(a:arg_lead) || a:arg_lead =~ '^-'
+        let opts = [ '-1', '-2', '-3', '-a', '--abbrev', '-B', '-b', '--base',
+                    \ '--binary', '-C', '--cached', '--check', '--color',
+                    \ '--color-words', '--diff-filter', '--dirstat',
+                    \ '--exit-code', '--find-copies-harder', '--full-index',
+                    \ '--ignore-all-space', '--ignore-space-change', '-l', '-M',
+                    \ '--name-only', '--name-status', '--no-color',
+                    \ '--no-renames', '--numstat', '-O', '--ours', '-p',
+                    \ '--patch-with-raw', '--patch-with-stat', '--pickaxe-all',
+                    \ '--pickaxe-regex', '--quiet', '-R', '--raw', '--relative',
+                    \ '-S', '--shortstat', '--stat', '--summary', '--text',
+                    \ '--theirs', '-u', '-w', '-z' ]
+    endif
+    if !strlen(a:arg_lead) || a:arg_lead !~ '^-'
+        let commits = ['HEAD'] + ListGitLocalBranches() + ListGitCommits()
+        if a:arg_lead =~ '\.\.'
+            let pre = matchstr(a:arg_lead, '.*\.\.\ze')
+            let commits = map(commits, 'pre . v:val')
+        endif
+        let opts += commits
+    endif
+    return filter(opts, 'match(v:val, ''\v'' . a:arg_lead) == 0')
 endfunction
 
 " Show Status.
@@ -140,6 +172,20 @@ function! GitAdd(expr)
     call GitDoCommand('add ' . file)
 endfunction
 
+function! CompleteGitAddCmd(arg_lead, cmd_line, cursor_pos)
+    let opts = [ ]
+    if !strlen(a:arg_lead) || a:arg_lead =~ '^-'
+        let opts += [ '--all', '-A', '--dry-run', '-n', '--force', '-f',
+                    \ '--ignore-errors', '', '--interactive', '-i',
+                    \ '--patch', '-p', '--refresh', '', '--update', '-u',
+                    \ '--verbose', '-v' ]
+    endif
+    if !strlen(a:arg_lead) || a:arg_lead !~ '^-'
+        let opts += split(system("git ls-files --exclude-standard"))
+    endif
+    return filter(opts, 'match(v:val, ''\v'' . a:arg_lead) == 0')
+endfunction
+
 " Commit.
 function! GitCommit(args)
     let git_dir = <SID>GetGitDir()
@@ -169,13 +215,25 @@ function! GitCheckout(args)
     call GitDoCommand('checkout ' . a:args)
 endfunction
 
+function! CompleteGitCheckoutCmd(arg_lead, cmd_line, cursor_pos)
+    let opts = [ ]
+    if !strlen(a:arg_lead) || a:arg_lead =~ '^-'
+        let opts += [ '-b', '-f', '-l', '-m', '--no-track', '-q', '--track', '-t' ]
+    endif
+    if !strlen(a:arg_lead) || a:arg_lead !~ '^-'
+        let opts += ['HEAD'] + ListGitBranches()
+    endif
+    return filter(opts, 'match(v:val, ''\v'' . a:arg_lead) == 0')
+endfunction
+
+
 " Push.
 function! GitPush(args)
 "   call GitDoCommand('push ' . a:args)
     " Wanna see progress...
     let args = a:args
     if args =~ '^\s*$'
-        let args = 'origin ' . GitBranch()
+        let args = 'origin ' . GetGitBranch()
     endif
     execute '!' g:git_bin 'push' args
 endfunction
@@ -275,15 +333,15 @@ function! CompleteGitCmd(arg_lead, cmd_line, cursor_pos)
     endif
 
     " complete the first word
-    if len(words) < 2
+    if len(words) < 2 || words[1] == a:arg_lead
         let commands = split(system("COLUMNS=1 git help -a | awk '/^  / { split($1,x,\" \") ; print $1 }'"))
         return filter(commands, 'match(v:val, ''\v'' . a:arg_lead) == 0')
     endif
 
     let name = 'CompleteGit' . substitute(words[1], '^.', '\u&', '') . 'Cmd'
-    let fn = exists('*' . name) && function(name)
-    if fn
-        return call(fn, a:arg_lead, a:cmd_line, a:cursor_pos)
+    if exists('*' . name)
+        let Fn = function(name)
+        return Fn(a:arg_lead, a:cmd_line, a:cursor_pos)
     endif
 
     return [ ]
@@ -387,10 +445,10 @@ function! s:Expand(expr)
     endif
 endfunction
 
-command! -nargs=1 -complete=customlist,ListGitCommits GitCheckout call GitCheckout(<q-args>)
-command! -nargs=* -complete=customlist,ListGitCommits GitDiff     call GitDiff(<q-args>)
+command! -nargs=1 -complete=customlist,CompleteGitCheckoutCmd GitCheckout call GitCheckout(<q-args>)
+command! -nargs=* -complete=customlist,CompleteGitDiffCmd     GitDiff     call GitDiff(<q-args>)
 command!          GitStatus           call GitStatus()
-command! -nargs=? GitAdd              call GitAdd(<q-args>)
+command! -nargs=? -complete=customlist,CompleteGitAddCmd      GitAdd              call GitAdd(<q-args>)
 command! -nargs=* GitLog              call GitLog(<q-args>)
 command! -nargs=* GitCommit           call GitCommit(<q-args>)
 command! -nargs=1 GitCatFile          call GitCatFile(<q-args>)
