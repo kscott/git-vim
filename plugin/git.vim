@@ -319,7 +319,26 @@ function! s:LoadSyntaxRuleFor(params)
     endif
 endfunction
 
-" Complete available commands
+" git command wrapper
+function! Git(args)
+    let words = split(a:args)
+    let name = 'Git' . substitute(words[0], '^.', '\u&', '')
+    if exists('*' . name)
+        let Fn = function(name)
+        return Fn(join(words[1:]))
+    endif
+
+    " fallback to simple handler
+    let git_output = s:SystemGit(a:args)
+    if !strlen(git_output)
+        echo "No output from git command"
+        return
+    endif
+
+    call <SID>OpenGitBuffer(git_output)
+    execute printf('setlocal filetype=git-%s', words[0])
+endfunction
+
 function! CompleteGitCmd(arg_lead, cmd_line, cursor_pos)
     " don't try to handle completing in the middle for now
     if a:arg_lead =~ '\s'
@@ -346,6 +365,8 @@ function! CompleteGitCmd(arg_lead, cmd_line, cursor_pos)
 
     return [ ]
 endfunction
+
+
 
 function! GitDoCommand(args)
     let git_output = s:SystemGit(a:args)
@@ -460,7 +481,7 @@ command!          GitPullRebase       call GitPull('--rebase')
 command! -nargs=* GitPush             call GitPush(<q-args>)
 command! -nargs=* GitGrep             call GitGrep(<q-args>)
 
-command! -nargs=+ -complete=customlist,CompleteGitCmd Git call GitDoCommand(<q-args>)
+command! -nargs=+ -complete=customlist,CompleteGitCmd         Git                 call Git(<q-args>)
 cabbrev git <c-r>=(getcmdtype()==':' && getcmdpos()==1 ? 'Git' : 'git')<CR>
 
 " vim: set et sw=4 ts=4:
