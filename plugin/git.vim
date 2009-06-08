@@ -261,6 +261,28 @@ function! s:LoadSyntaxRuleFor(params)
     endif
 endfunction
 
+" Complete available commands
+function! CompleteGitCmd(arg_lead, cmd_line, cursor_pos)
+    " don't try to handle completing in the middle for now
+    if a:arg_lead =~ '\s'
+        return [ ]
+    endif
+
+    let words = split(substitute(a:cmd_line, '^ \+', '', ''), '\W\+')
+
+    if words[0] != 'Git'
+        return [ ]
+    endif
+
+    " complete the first word
+    if len(words) < 3
+        let commands = split(system("COLUMNS=1 git help -a | awk '/^  / { split($1,x,\" \") ; print $1 }'"))
+        return filter(commands, 'match(v:val, ''\v'' . a:arg_lead) == 0')
+    endif
+
+    return [ ]
+endfunction
+
 function! GitDoCommand(args)
     let git_output = s:SystemGit(a:args)
     let git_output = substitute(git_output, '\n*$', '', '')
@@ -367,12 +389,14 @@ command! -nargs=* GitLog              call GitLog(<q-args>)
 command! -nargs=* GitCommit           call GitCommit(<q-args>)
 command! -nargs=1 GitCatFile          call GitCatFile(<q-args>)
 command!          GitBlame            call GitBlame()
-command! -nargs=+ Git                 call GitDoCommand(<q-args>)
 command!          GitVimDiffMerge     call GitVimDiffMerge()
 command!          GitVimDiffMergeDone call GitVimDiffMergeDone()
 command! -nargs=* GitPull             call GitPull(<q-args>)
 command!          GitPullRebase       call GitPull('--rebase')
 command! -nargs=* GitPush             call GitPush(<q-args>)
 command! -nargs=* GitGrep             call GitGrep(<q-args>)
+
+command! -nargs=+ -complete=customlist,CompleteGitCmd Git call GitDoCommand(<q-args>)
+cabbrev git <c-r>=(getcmdtype()==':' && getcmdpos()==1 ? 'Git' : 'git')<CR>
 
 " vim: set et sw=4 ts=4:
