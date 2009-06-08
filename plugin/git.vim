@@ -275,9 +275,15 @@ function! CompleteGitCmd(arg_lead, cmd_line, cursor_pos)
     endif
 
     " complete the first word
-    if len(words) < 3
+    if len(words) < 2
         let commands = split(system("COLUMNS=1 git help -a | awk '/^  / { split($1,x,\" \") ; print $1 }'"))
         return filter(commands, 'match(v:val, ''\v'' . a:arg_lead) == 0')
+    endif
+
+    let name = 'CompleteGit' . substitute(words[1], '^.', '\u&', '') . 'Cmd'
+    let fn = exists('*' . name) && function(name)
+    if fn
+        return call(fn, a:arg_lead, a:cmd_line, a:cursor_pos)
     endif
 
     return [ ]
