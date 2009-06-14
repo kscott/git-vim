@@ -90,6 +90,18 @@ function! ListGitCommits()
     return commits
 endfunction
 
+" List all files, optionally restricted by type
+" 'types' should be string containing zero or more of:
+"  -c --cached     -d --deleted   -i --ignored   -k --killed
+"  -m --modified   -o --others    -u --unmerged
+function! ListGitFiles(types)
+    let files = split(s:SystemGit('ls-files --exclude-standard ' . a:types))
+    if v:shell_error
+        return []
+    endif
+
+    return files
+endfunction
 
 
 " Show diff.
@@ -174,14 +186,19 @@ endfunction
 
 function! CompleteGitAddCmd(arg_lead, cmd_line, cursor_pos)
     let opts = [ ]
-    if !strlen(a:arg_lead) || a:arg_lead =~ '^-'
-        let opts += [ '--all', '-A', '--dry-run', '-n', '--force', '-f',
-                    \ '--ignore-errors', '', '--interactive', '-i',
-                    \ '--patch', '-p', '--refresh', '', '--update', '-u',
-                    \ '--verbose', '-v' ]
+    let cmd_lead = a:cmd_line[:a:cursor_pos]
+    " stop completing -* flags after '--' and after the first non-flag
+    if cmd_lead !~ ' -- ' && cmd_lead !~ '^\v(\S+\s+){2}.*\<\S'
+        if !strlen(a:arg_lead) || a:arg_lead =~ '^-'
+            let opts += [ '--all', '-A', '--dry-run', '-n', '--force', '-f',
+                        \ '--ignore-errors', '', '--interactive', '-i',
+                        \ '--patch', '-p', '--refresh', '', '--update', '-u',
+                        \ '--verbose', '-v' ]
+        endif
     endif
+    " if it's not a -* flag, complete filenames
     if !strlen(a:arg_lead) || a:arg_lead !~ '^-'
-        let opts += split(system("git ls-files --exclude-standard"))
+        let opts += ListGitFiles('-c -d -m -o')
     endif
     return filter(opts, 'match(v:val, ''\v'' . a:arg_lead) == 0')
 endfunction
