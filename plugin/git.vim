@@ -239,6 +239,12 @@ function! GitCommit(args)
         let args .= ' -a'
     endif
 
+    if args !~ '\v\k<!-([mcCF]>|-message=|-reuse-message=|-reedit-message=|-file=)'
+        " no need to ask the user for a message, we have one
+        execute '!' . g:git_bin . ' commit ' . args
+        return
+    endif
+
     " Create COMMIT_EDITMSG file
     let editor_save = $EDITOR
     let $EDITOR = ''
