@@ -183,9 +183,31 @@ endfunction
 
 " Add file to index.
 function! GitAdd(expr)
-    let file = s:Expand(strlen(a:expr) ? a:expr : '%')
+    let args = []
+    let interactive = 0
+    if strlen(a:expr)
+        let lookForOptions = 1
+        for item in s:SplitCmd(a:expr)
+            if lookForOptions && item =~ '^[''"]*-'
+                if item =~ '\v^[''"]*-(i|p|-interactive|-patch)'
+                    let interactive = 1
+                elseif item =~ '^[''"]*--[''"]*$'
+                    let lookForOptions = 0
+                endif
+                let args += [ item ]
+            else
+                let args += [ s:Expand(item) ]
+            endif
+        endfor
+    else
+        let args += [ s:Expand('%') ]
+    endif
 
-    call GitDoCommand('add ' . file)
+    if interactive
+        execute '!' . g:git_bin . ' add ' . join(args)
+    else
+        call GitDoCommand('add ' . join(args))
+    endif
 endfunction
 
 function! CompleteGitAddCmd(arg_lead, cmd_line, cursor_pos)
@@ -490,10 +512,48 @@ function! s:Expand(expr)
     endif
 endfunction
 
+" Takes a string containing a shell command and splits it into a list containing
+" an approximation of the way the line would be parsed by a shell.
+function! s:SplitCmd(cmd)
+    let l:split_cmd = []
+    let cmd = a:cmd
+    let iStart = 0
+    while 1
+        let t = match(cmd, '\S', iStart)
+        if t < iStart
+            break
+        endif
+        let iStart = t
+
+        let iSpace = match(cmd, '\v(\s|$)', iStart)
+        if iSpace < iStart
+            break
+        endif
+
+        let iQuote1 = match(cmd, '\(^["'']\|[^\\]\@<=["'']\)', iStart)
+        if iQuote1 < iStart
+            let iEnd = iSpace - 1
+        else
+            let q = cmd[iQuote1]
+            let iQuote2 = match(cmd, '[^\\]\@<=[' . q . ']', iQuote1 + 1)
+            if iQuote2 < iQuote1
+                throw 'No matching ' . q . ' quote'
+            endif
+            let iEnd = iQuote2
+        endif
+
+        let l:split_cmd += [ cmd[iStart : iEnd] ]
+        
+        let iStart = iEnd + 1
+    endwhile
+
+    return l:split_cmd
+endfunction
+
 command! -nargs=1 -complete=customlist,CompleteGitCheckoutCmd GitCheckout         call GitCheckout(<q-args>)
 command! -nargs=* -complete=customlist,CompleteGitDiffCmd     GitDiff             call GitDiff(<q-args>)
 command! -nargs=*                                             GitStatus           call GitStatus(<q-args>)
-command! -nargs=? -complete=customlist,CompleteGitAddCmd      GitAdd              call GitAdd(<q-args>)
+command! -nargs=? -complete=customlist,CompleteGitAddCmd      GitAdd              call GitAdd(<f-args>)
 command! -nargs=* GitLog              call GitLog(<q-args>)
 command! -nargs=* GitCommit           call GitCommit(<q-args>)
 command! -nargs=1 GitCatFile          call GitCatFile(<q-args>)
