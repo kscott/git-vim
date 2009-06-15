@@ -143,7 +143,10 @@ function! CompleteGitDiffCmd(arg_lead, cmd_line, cursor_pos)
 endfunction
 
 " Show Status.
-function! GitStatus()
+function! GitStatus(args)
+    if len(a:args)
+        echoe 'GitStatus ignores arguments'
+    endif
     let git_output = s:SystemGit('status')
     call <SID>OpenGitBuffer(git_output)
     setlocal filetype=git-status
@@ -486,9 +489,9 @@ function! s:Expand(expr)
     endif
 endfunction
 
-command! -nargs=1 -complete=customlist,CompleteGitCheckoutCmd GitCheckout call GitCheckout(<q-args>)
-command! -nargs=* -complete=customlist,CompleteGitDiffCmd     GitDiff     call GitDiff(<q-args>)
-command!          GitStatus           call GitStatus()
+command! -nargs=1 -complete=customlist,CompleteGitCheckoutCmd GitCheckout         call GitCheckout(<q-args>)
+command! -nargs=* -complete=customlist,CompleteGitDiffCmd     GitDiff             call GitDiff(<q-args>)
+command! -nargs=*                                             GitStatus           call GitStatus(<q-args>)
 command! -nargs=? -complete=customlist,CompleteGitAddCmd      GitAdd              call GitAdd(<q-args>)
 command! -nargs=* GitLog              call GitLog(<q-args>)
 command! -nargs=* GitCommit           call GitCommit(<q-args>)
