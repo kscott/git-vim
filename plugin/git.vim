@@ -405,7 +405,7 @@ function! GitDoCommand(args)
 endfunction
 
 function! s:SystemGit(args)
-    return system(g:git_bin . ' ' . a:args)
+    return system(g:git_bin . ' ' . a:args . '< /dev/null')
 endfunction
 
 " Show vimdiff for merge. (experimental)
