@@ -52,7 +52,7 @@ function! GetGitBranch()
 
     if strlen(git_dir) && filereadable(git_dir . 'HEAD')
         let lines = readfile(git_dir . 'HEAD')
-        return len(lines) ? matchstr(lines[0], '[^/]*$') : ''
+        return len(lines) ? '[' . matchstr(lines[0], '[^/]*$') . ']' : ''
     else
         return ''
     endif
